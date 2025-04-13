@@ -33,3 +33,8 @@ docker run -it --rm \
 
 - `RDOCKER_HOME`: Base directory for `rdocker` configuration. Default is `~/.rdocker`.
 - `RDOCKER_DEBUG`: Enable debug mode. Default is `0`.
+- `RDOCKER_TCP_ENABLE`: Enable TCP proxy for the tunneled docker socket. Default is `0`.
+- `RDOCKER_TCP_PORT`: TCP port. Default is `12345`.
+- `RDOCKER_CONTEXT`: Rdocker context. Default is `default`.
+- `RDOCKER_REMOTE_HOST`: Remote host to connect to. Required.
+- `RDOCKER_REMOTE_USER`: Remote user to connect to. Required.
