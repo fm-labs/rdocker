@@ -1,0 +1,13 @@
+
+
+services:
+
+  dev-rdocker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - RDOCKER_CONTEXT=local
+    volumes:
+      - ~/.ssh:/home/rdocker/.ssh:ro
+      - ./hosts:/rdocker/hosts:ro

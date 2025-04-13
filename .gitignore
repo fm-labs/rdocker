@@ -1,0 +1,10 @@
+.idea/
+dist/
+node_modules/
+hosts/
+launch-templates/
+bootstrap/
+run/
+.DS_Store
+*.log
+x*.sh
