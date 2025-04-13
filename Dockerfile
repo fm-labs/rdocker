@@ -6,21 +6,40 @@ RUN apk add --no-cache \
     openssh-client \
     autossh \
     openssl \
-    bash
+    bash \
+    curl \
+    jq \
+    socat \
+    byobu && \
+    rm -rf /var/cache/apk/*
 
-
+# create group docker
 # create a non-root user
-RUN adduser -D rdocker
+# add the user to the docker group
+RUN addgroup -S docker && \
+    adduser -D rdocker && \
+    addgroup rdocker docker
 
+# copy files
 WORKDIR /
-COPY  --chown=rdocker:rdocker bootstrap.sh config.inc.sh env.inc.sh util.inc.sh rdocker.sh \
-    /rdocker/
-RUN chmod +x /rdocker/rdocker.sh
+COPY  --chown=rdocker:rdocker \
+    inc/config.inc.sh inc/env.inc.sh inc/util.inc.sh \
+    /rdocker/inc/
+COPY  --chown=rdocker:rdocker \
+    rdocker.sh /rdocker/
+COPY --chown=rdocker:rdocker \
+    ./docker/entrypoint.sh /entrypoint.sh
 
-COPY --chown=rdocker:rdocker ./docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# set permissions
+RUN mkdir -p /rdocker/run && \
+    chown rdocker:rdocker /rdocker/run && \
+    chmod +x /rdocker/rdocker.sh && \
+    chmod +x /entrypoint.sh && \
+    ln -s /rdocker/rdocker.sh /usr/local/bin/rdocker
 
+WORKDIR /rdocker
 USER rdocker
 ENTRYPOINT ["/entrypoint.sh"]
-WORKDIR /rdocker
-CMD ["bash", "/rdocker/rdocker.sh"]
+CMD ["/rdocker/rdocker.sh", "info"]
+
+EXPOSE 12345
