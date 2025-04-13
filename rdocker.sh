@@ -34,9 +34,57 @@ fi
 RDOCKER_HOST=unix://${RDOCKER_LOCAL_SOCKET}
 # the (Auto)SSH tunnel PID file
 RDOCKER_TUNNEL_PID_FILE=${RDOCKER_LOCAL_TMPDIR}/rdocker-ssh-tunnel.${RDOCKER_CONTEXT}.pid
+RDOCKER_SOCAT_PID_FILE=${RDOCKER_LOCAL_TMPDIR}/rdocker-socat.${RDOCKER_CONTEXT}.pid
 # local variable to skip auto-cleanup of the tunnel
 skip_cleanup=0
 
+RDOCKER_REMOTE_SSH_KEY=${RDOCKER_REMOTE_SSH_KEY:-}
+if [ -z "$RDOCKER_REMOTE_SSH_KEY" ]; then
+  if [ -f "${RDOCKER_HOME}/hosts/${RDOCKER_CONTEXT}/ssh_key" ]; then
+    RDOCKER_REMOTE_SSH_KEY="${RDOCKER_HOME}/hosts/${RDOCKER_CONTEXT}/ssh_key"
+  fi
+fi
+
+# ssh arguments
+SSH_ARGS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ExitOnForwardFailure=yes"
+AUTOSSH_ARGS=""
+# check if the SSH key is set
+if [ -n "$RDOCKER_REMOTE_SSH_KEY" ]; then
+  if [ -f "$RDOCKER_REMOTE_SSH_KEY" ]; then
+    SSH_ARGS="$SSH_ARGS -i $RDOCKER_REMOTE_SSH_KEY"
+    #AUTOSSH_ARGS="$AUTOSSH_ARGS -i $RDOCKER_REMOTE_SSH_KEY"
+  else
+    echoerr "SSH key file not found: $RDOCKER_REMOTE_SSH_KEY. Exiting"
+    #exit 1
+  fi
+fi
+echo "SSH_ARGS: $SSH_ARGS"
+echo "SSH_AUTH_SOCK: $SSH_AUTH_SOCK"
+
+# runtime
+mkdir -p $RDOCKER_LOCAL_TMPDIR
+SSH_PID=
+SOCAT_PID=
+
+function kill_process() {
+  local pid=$1
+  if [ -n "$pid" ]; then
+    echolog "Killing process with PID: $pid"
+
+    # check if the process is running
+    if ! kill -0 "$pid" 2>/dev/null; then
+      echolog "Process with PID $pid is not running. Exiting"
+      return 0
+    fi
+
+    # kill the process
+    kill $pid 2>/dev/null
+    if [ $? -ne 0 ]; then
+      echoerr "Failed to kill process. PID: $pid. Trying harder ..."
+      kill -9 $pid
+    fi
+  fi
+}
 
 function setup_autossh_tunnel() {
   if [ -z "$RDOCKER_REMOTE_HOST" ]; then
@@ -49,11 +97,9 @@ function setup_autossh_tunnel() {
     exit 1
   fi
 
-  mkdir -p $RDOCKER_LOCAL_TMPDIR
-
+  # check if a tunnel is already running
   if [ -f $RDOCKER_TUNNEL_PID_FILE ]; then
     SSH_PID=$(cat $RDOCKER_TUNNEL_PID_FILE)
-    #if ps -p $SSH_PID > /dev/null; then
     if kill -0 "$SSH_PID" 2>/dev/null; then
       echolog "SSH tunnel already up. PID: $SSH_PID"
       skip_cleanup=1
@@ -62,17 +108,16 @@ function setup_autossh_tunnel() {
   fi
 
   echolog "Setting up autossh tunnel to ${RDOCKER_REMOTE_HOST}"
-
   #export AUTOSSH_PIDFILE=${RDOCKER_TUNNEL_PID_FILE}
-  $AUTOSSH_BIN $AUTOSSH_ARGS -M 0 -N \
+  $AUTOSSH_BIN -M 0 -N \
     -L "${RDOCKER_LOCAL_SOCKET}:${RDOCKER_REMOTE_SOCKET}" \
-    -o ExitOnForwardFailure=yes \
+    $SSH_ARGS \
     "${RDOCKER_REMOTE_USER}@${RDOCKER_REMOTE_HOST}" &
 
   SSH_PID=$!
   echolog "SSH PID: $SSH_PID"
-  # check if SSH_PID is running
-  # if ! ps -p $SSH_PID > /dev/null; then
+
+  # check if the autossh process is running
   if ! kill -0 "$SSH_PID" 2>/dev/null; then
     echoerr "SSH tunnel failed to start. Exiting"
     exit 1
@@ -92,11 +137,9 @@ function setup_tunnel() {
     exit 1
   fi
 
-  mkdir -p $RDOCKER_LOCAL_TMPDIR
-
+  # check if a tunnel is already running
   if [ -f $RDOCKER_TUNNEL_PID_FILE ]; then
     SSH_PID=$(cat $RDOCKER_TUNNEL_PID_FILE)
-    #if ps -p $SSH_PID > /dev/null; then
     if kill -0 "$SSH_PID" 2>/dev/null; then
       echolog "SSH tunnel already up. PID: $SSH_PID"
       skip_cleanup=1
@@ -105,16 +148,15 @@ function setup_tunnel() {
   fi
 
   echolog "Setting up tunnel to ${RDOCKER_REMOTE_HOST}"
-
-  $SSH_BIN $SSH_ARGS -N \
+  $SSH_BIN -N \
     -L "${RDOCKER_LOCAL_SOCKET}:${RDOCKER_REMOTE_SOCKET}" \
-    -o ExitOnForwardFailure=yes \
+    $SSH_ARGS \
     "${RDOCKER_REMOTE_USER}@${RDOCKER_REMOTE_HOST}" &
 
   SSH_PID=$!
   echolog "SSH PID: $SSH_PID"
-  # check if SSH_PID is running
-  #if ! ps -p $SSH_PID > /dev/null; then
+
+  # make sure the SSH tunnel is running
   if ! kill -0 "$SSH_PID" 2>/dev/null; then
     echoerr "SSH tunnel failed to start. Exiting"
     exit 1
@@ -125,15 +167,19 @@ function setup_tunnel() {
 
 function cleanup_tunnel() {
   echolog "Cleaning up tunnel"
+
+  echolog "Killing socat PID: $SOCAT_PID"
+  if [ -n "$SOCAT_PID" ]; then
+    kill_process $SOCAT_PID
+  fi
+
   if [ -f $RDOCKER_TUNNEL_PID_FILE ]; then
     SSH_PID=$(cat $RDOCKER_TUNNEL_PID_FILE)
     echolog "Killing SSH PID: $SSH_PID"
-    kill $SSH_PID # > /dev/null # &
-    if [ $? -ne 0 ]; then
-      echoerr "Failed to kill SSH tunnel. PID: $SSH_PID. Trying harder ..."
-      kill -9 $SSH_PID
-    fi
+    kill_process $SSH_PID
+
     rm -f $RDOCKER_TUNNEL_PID_FILE
+    rm -f $RDOCKER_SOCAT_PID_FILE
     rm -f $RDOCKER_LOCAL_SOCKET
     echolog "Tunnel cleanup complete"
   fi
@@ -154,6 +200,7 @@ function print_context() {
   echo "* RDOCKER_CONTEXT: $RDOCKER_CONTEXT"
   echo "* RDOCKER_REMOTE_HOST: $RDOCKER_REMOTE_HOST"
   echo "* RDOCKER_REMOTE_USER: $RDOCKER_REMOTE_USER"
+  echo "* RDOCKER_REMOTE_SOCKET: $RDOCKER_REMOTE_SOCKET"
   echo "* RDOCKER_LOCAL_SOCKET: $RDOCKER_LOCAL_SOCKET"
   echo "* RDOCKER_HOST: $RDOCKER_HOST"
   echo "-----------------------"
@@ -162,18 +209,18 @@ function print_context() {
 # cleanup on exit
 trap cleanup EXIT
 
-
+# process the command line arguments
 CMD=$1
 echolog "CMD: $CMD"
-
 case $CMD in
   "info")
-    print_context
     skip_cleanup=1
+    print_context
     exit 0
   ;;
 
   "ssh-probe")
+    skip_cleanup=1
     if [ -z "$RDOCKER_REMOTE_HOST" ]; then
       echoerr "RDOCKER_REMOTE_HOST not defined. Exiting"
       exit 1
@@ -213,18 +260,33 @@ EOF
     echo "🚀  SSH tunnel established to ${RDOCKER_REMOTE_HOST}"
     echo "🛰️ Local socket: ${RDOCKER_LOCAL_SOCKET}"
     echo "🔥️ -> Use: DOCKER_HOST=${RDOCKER_HOST}"
-    #echo ""
-    #echo "Example:"
-    #echo "DOCKER_HOST=${RDOCKER_HOST} docker ps"
-    #echo ""
-    echo "Press Ctrl+C to exit."
+
+    # now we use socat to forward the local TCP port to the tunneled docker socket
+    # this enabled us to access the tunneled remote docker socket via TCP
+    RDOCKER_TCP_PORT=12345
+    echo "Starting socat to forward tcp:${RDOCKER_TCP_PORT} to ${RDOCKER_LOCAL_SOCKET}"
+    SOCAT_ARGS=""
+    if [ $RDOCKER_SOCAT_DEBUG -eq 1 ]; then
+      SOCAT_ARGS="-v -d -d"
+    fi
+    $SOCAT_BIN $SOCAT_ARGS \
+      TCP-LISTEN:${RDOCKER_TCP_PORT},reuseaddr,fork \
+      UNIX-CONNECT:${RDOCKER_LOCAL_SOCKET} &
+    SOCAT_PID=$!
+    echo "SOCAT_PID: $SOCAT_PID"
+    echo $SOCAT_PID > "${RDOCKER_SOCAT_PID_FILE}"
+    echo "🔥️ -> Use: DOCKER_HOST=tcp://localhost:${RDOCKER_TCP_PORT}"
+
+    #sleep 1
+    #export DOCKER_HOST=$RDOCKER_HOST
+    #$DOCKER_BIN ps
 
     # loop forever until someone kills the script
+    echo "Press Ctrl+C to exit."
     while true; do
-      sleep 1
+      sleep 3
       if [ -f $RDOCKER_TUNNEL_PID_FILE ]; then
         SSH_PID=$(cat $RDOCKER_TUNNEL_PID_FILE)
-        #if ! ps -p $SSH_PID > /dev/null; then
         if ! kill -0 "$SSH_PID" 2>/dev/null; then
           echoerr "SSH tunnel process with PID $PID vanished. Exiting"
           exit 91
@@ -233,36 +295,43 @@ EOF
         echoerr "SSH tunnel PID file vanished. Exiting"
         exit 92
       fi
-    done
 
+      #clear
+      #$DOCKER_BIN ps
+      #echo "Press Ctrl+C to exit."
+    done
     exit 0
   ;;
 
   "tunnel-down")
     cleanup_tunnel
     echolog "🚀 SSH tunnel closed"
+    skip_cleanup=1 # already cleaned up
     exit 0
   ;;
 
   *)
     # By default, we assume the command is a docker command
     # and we need to setup the tunnel first.
+    # The trap will cleanup the tunnel on exit.
 
     #setup_tunnel
     setup_autossh_tunnel
 
-    export DOCKER_HOST=$RDOCKER_HOST
+    export DOCKER_HOST=${RDOCKER_HOST}
     echolog "DOCKER_HOST=$DOCKER_HOST"
 
     DOCKER_CMD="$@"
     echolog "DOCKER_CMD: $DOCKER_CMD"
-    sleep 1
+
+    # we explicitly do NOT use 'exec' 'here, because we want to catch the exit code
+    # and cleanup the tunnel
+    # NO: exec $DOCKER_BIN $DOCKER_CMD
 
     $DOCKER_BIN $DOCKER_CMD
     RC=$?
     if [ $RC -ne 0 ]; then
-      echoerr "Docker command failed. Exiting"
-      exit 1
+      echoerr "Docker command failed with exit code: $RC"
     fi
     exit $RC
   ;;

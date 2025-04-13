@@ -32,6 +32,11 @@ if [ -z "$AUTOSSH_BIN" ]; then
   exit 1
 fi
 
+SOCAT_BIN=${SOCAT_BIN:-$(which socat)}
+if [ -z "$SOCAT_BIN" ]; then
+  echoerr "Socat is not installed. Exiting"
+  exit 1
+fi
 
 OPENSSL_BIN=${OPENSSL_BIN:-$(which openssl)}
 #if [ -z "$OPENSSL_BIN" ]; then
@@ -48,6 +53,7 @@ RSYNC_BIN=${RSYNC_BIN:-$(which rsync)}
 echolog "SSH_BIN=$SSH_BIN"
 echolog "AUTOSSH_BIN=$AUTOSSH_BIN"
 echolog "DOCKER_BIN=$DOCKER_BIN"
+echolog "SOCAT_BIN=$SOCAT_BIN"
 echolog "OPENSSL_BIN=$OPENSSL_BIN"
 echolog "RSYNC_BIN=$RSYNC_BIN"
 echolog "All required binaries are installed"
