@@ -5,9 +5,12 @@ services:
   dev-rdocker:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile-alpine
     environment:
+      - RDOCKER_DEBUG=1
       - RDOCKER_CONTEXT=local
+      - RDOCKER_REMOTE_HOST=fm.srv03
+      - RDOCKER_REMOTE_USER=root
     volumes:
       - ~/.ssh:/home/rdocker/.ssh:ro
       - ./hosts:/rdocker/hosts:ro

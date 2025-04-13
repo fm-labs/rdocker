@@ -14,7 +14,7 @@ function echolog() {
 
   #RDOCKER_DEBUG=1
   if [[ "${RDOCKER_DEBUG}" -eq 1 ]]; then
-    echo "[rdocker] ${message}"
+    echo "${RDOCKER_LOGPREFIX}${message}"
   fi
 }
 
@@ -22,5 +22,5 @@ function echoerr() {
   local message="${1}"
   #local log_file="${2}"
   #echo "${message}" | tee -a "${log_file}" >&2
-  echo "Error! ${message}" >&2
+  echo "ERROR! ${RDOCKER_LOGPREFIX}${message}" >&2
 }

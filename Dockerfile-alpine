@@ -13,7 +13,9 @@ RUN apk add --no-cache \
 RUN adduser -D rdocker
 
 WORKDIR /
-COPY  --chown=rdocker:rdocker bootstrap.sh config.inc.sh env.inc.sh util.inc.sh rdocker.sh \
+COPY  --chown=rdocker:rdocker inc/config.inc.sh inc/env.inc.sh inc/util.inc.sh \
+    /rdocker/inc/
+COPY  --chown=rdocker:rdocker rdocker.sh \
     /rdocker/
 RUN chmod +x /rdocker/rdocker.sh
 
@@ -23,4 +25,4 @@ RUN chmod +x /entrypoint.sh
 USER rdocker
 ENTRYPOINT ["/entrypoint.sh"]
 WORKDIR /rdocker
-CMD ["/rdocker/rdocker.sh"]
+CMD ["/rdocker/rdocker.sh", "info"]

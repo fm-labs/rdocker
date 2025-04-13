@@ -4,36 +4,37 @@
 # -- RDOCKER_CONTEXT is the context name.
 # -- RDOCKER_HOME is the home directory of the RDOCKER project.
 
-
+RDOCKER_LOGPREFIX="[env] "
 #RDOCKER_CONTEXT=$1
 if [ -z "$RDOCKER_CONTEXT" ]; then
-  echo "[env] RDOCKER_CONTEXT not set. Exiting"
+  echoerr "RDOCKER_CONTEXT not set. Exiting"
   exit 1
 fi
 if [ -z "$RDOCKER_HOME" ]; then
-  echo "[env] RDOCKER_HOME not set. Exiting"
+  echoerr "RDOCKER_HOME not set. Exiting"
   exit 1
 fi
 
 # Load env variables from the specified environment file
-if [ ! -f ${RDOCKER_HOME}/hosts/${RDOCKER_CONTEXT}/env ]; then
-  echo "[env] File ${RDOCKER_HOME}/hosts/${RDOCKER_CONTEXT}/env does not exist. Exiting"
-  exit 1
+if [ -f ${RDOCKER_HOME}/hosts/${RDOCKER_CONTEXT}/env ]; then
+  source ${RDOCKER_HOME}/hosts/${RDOCKER_CONTEXT}/env
+else
+  echoerr "WARN: File ${RDOCKER_HOME}/hosts/${RDOCKER_CONTEXT}/env does not exist."
+  #exit 1
 fi
-source ${RDOCKER_HOME}/hosts/${RDOCKER_CONTEXT}/env
 
 # Check if the required environment variables are set
 #if [ -z "$RDOCKER_HOST" ]; then
-#  echo "[env] RDOCKER_HOST not defined. Exiting"
+#  echo "RDOCKER_HOST not defined. Exiting"
 #  exit 1
 #fi
 
 if [ -z "$RDOCKER_REMOTE_HOST" ]; then
-  echo "[env] RDOCKER_REMOTE_HOST not defined. Exiting"
+  echoerr "RDOCKER_REMOTE_HOST not defined. Exiting"
   exit 1
 fi
 
 if [ -z "$RDOCKER_REMOTE_USER" ]; then
-  echo "[env] RDOCKER_REMOTE_USER not defined. Exiting"
+  echoerr "RDOCKER_REMOTE_USER not defined. Exiting"
   exit 1
 fi
