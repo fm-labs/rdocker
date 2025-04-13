@@ -2,7 +2,7 @@
 
 services:
 
-  dev-rdocker:
+  rdocker-dev:
     build:
       context: .
       dockerfile: Dockerfile
@@ -21,3 +21,25 @@ services:
     command:
       - rdocker
       - tunnel-up
+
+  rdocker0:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - RDOCKER_REMOTE_HOST=remote0.example.com
+    volumes:
+      - ~/.ssh:/home/rdocker/.ssh:ro
+    ports:
+      - "20000:12345"
+
+  rdocker1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - RDOCKER_REMOTE_HOST=remote1.example.com
+    volumes:
+      - ~/.ssh:/home/rdocker/.ssh:ro
+    ports:
+      - "20001:12345"

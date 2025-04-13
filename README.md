@@ -15,10 +15,18 @@ Simple, fast, and secure way to connect to your remote Docker daemon.
 
 ## Quick Start
 
+To create a rdocker tunnel to a remote Docker daemon, 
+run the following command:
 
-...
+(of course, you need to add your server IP address and username, and you need to have SSH access to the server)
 
-
+```bash
+docker run -it --rm \
+  -v ~/.ssh:/home/rdocker/.ssh \
+  -e RDOCKER_REMOTE_HOST=remote0.example.com \
+  -e RDOCKER_REMOTE_USER=ubuntu \
+  fmlabs/rdocker:latest
+```
 
 
 ## Environment Variables
