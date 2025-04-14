@@ -251,7 +251,7 @@ function print_context() {
 function setup_socat_proxy() {
     # now we use socat to forward the local TCP port to the tunneled docker socket
     # this enabled us to access the tunneled remote docker socket via TCP
-    RDOCKER_TCP_PORT=12345
+    RDOCKER_TCP_PORT=${RDOCKER_TCP_PORT:-12345}
     RDOCKER_SOCAT_DEBUG=${RDOCKER_SOCAT_DEBUG:-0}
     echolog "Starting socat to forward tcp:${RDOCKER_TCP_PORT} to ${RDOCKER_LOCAL_SOCKET}"
     SOCAT_ARGS=""

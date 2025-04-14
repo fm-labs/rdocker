@@ -33,6 +33,8 @@ COPY --chown=rdocker:rdocker \
 # set permissions
 RUN mkdir -p /rdocker/run && \
     chown rdocker:rdocker /rdocker/run && \
+    mkdir -p /.rdocker && \
+    chown rdocker:rdocker /.rdocker && \
     chmod +x /rdocker/rdocker.sh && \
     chmod +x /entrypoint.sh && \
     ln -s /rdocker/rdocker.sh /usr/local/bin/rdocker
@@ -40,6 +42,6 @@ RUN mkdir -p /rdocker/run && \
 WORKDIR /rdocker
 USER rdocker
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["/rdocker/rdocker.sh", "info"]
+CMD ["rdocker", "tunnel-up"]
 
 EXPOSE 12345

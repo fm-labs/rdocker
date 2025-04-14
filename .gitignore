@@ -8,4 +8,6 @@ bootstrap/
 run/
 .DS_Store
 *.log
+*.local
 x*.sh
+docker-compose-dev.yml
