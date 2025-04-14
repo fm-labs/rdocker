@@ -1,17 +1,9 @@
-#!/bin/bash
-
-#$script_dir=$(dirname $(readlink -f $0))
-#source $script_dir/util.inc.sh
-
+# Project: RDOCKER
+# File: inc/config.inc.sh
+# This include script sets up the environment for the RDOCKER project.
+# It checks if the required binaries are installed and sets up the environment variables.
 RDOCKER_LOGPREFIX="[config] "
 
-if [ -z "$RDOCKER_HOME" ]; then
-  RDOCKER_HOME=$(dirname $(readlink -f $0))
-fi
-echolog "RDOCKER_HOME: $RDOCKER_HOME"
-
-mkdir -p $RDOCKER_HOME/hosts
-echolog "Setup directory $RDOCKER_HOME/hosts"
 
 DOCKER_BIN=${DOCKER_BIN:-$(which docker)}
 if [ -z "$DOCKER_BIN" ]; then

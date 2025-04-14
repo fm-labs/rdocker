@@ -40,8 +40,8 @@ skip_cleanup=0
 
 RDOCKER_REMOTE_SSH_KEY=${RDOCKER_REMOTE_SSH_KEY:-}
 if [ -z "$RDOCKER_REMOTE_SSH_KEY" ]; then
-  if [ -f "${RDOCKER_HOME}/hosts/${RDOCKER_CONTEXT}/ssh_key" ]; then
-    RDOCKER_REMOTE_SSH_KEY="${RDOCKER_HOME}/hosts/${RDOCKER_CONTEXT}/ssh_key"
+  if [ -f "${RDOCKER_HOME}/${RDOCKER_CONTEXT}.key" ]; then
+    RDOCKER_REMOTE_SSH_KEY="${RDOCKER_HOME}/${RDOCKER_CONTEXT}.key"
   fi
 fi
 
@@ -54,12 +54,12 @@ if [ -n "$RDOCKER_REMOTE_SSH_KEY" ]; then
     SSH_ARGS="$SSH_ARGS -i $RDOCKER_REMOTE_SSH_KEY"
     #AUTOSSH_ARGS="$AUTOSSH_ARGS -i $RDOCKER_REMOTE_SSH_KEY"
   else
-    echoerr "SSH key file not found: $RDOCKER_REMOTE_SSH_KEY. Exiting"
+    echoerr "SSH key file not found: $RDOCKER_REMOTE_SSH_KEY"
     #exit 1
   fi
 fi
-echo "SSH_ARGS: $SSH_ARGS"
-echo "SSH_AUTH_SOCK: $SSH_AUTH_SOCK"
+#echolog "SSH_ARGS: $SSH_ARGS"
+#echolog "SSH_AUTH_SOCK: $SSH_AUTH_SOCK"
 
 # runtime
 mkdir -p $RDOCKER_LOCAL_TMPDIR
@@ -185,6 +185,43 @@ function cleanup_tunnel() {
   fi
 }
 
+function setup_docker_context() {
+  local context_name=$1
+  local host=$2
+
+  echolog "Setting up docker context for ${context_name} with host ${host}"
+  if [ -z "${context_name}" ]; then
+    echoerr "context_name not defined. Exiting"
+    return 1
+  fi
+  if [ -z "$host" ]; then
+    echoerr "host not defined. Exiting"
+    return 1
+  fi
+
+  # remove existing context, if any
+  $DOCKER_BIN context rm ${context_name} 2>/dev/null
+
+  # create the docker context
+  $DOCKER_BIN context create ${context_name} \
+    --docker "host=${host}" \
+    --description "Rdocker context for ${context_name}" > /dev/null
+
+  echolog "Created docker context: ${context_name}"
+}
+
+function cleanup_docker_context() {
+  local context_name=$1
+  echolog "Cleaning up docker context ${context_name}"
+  if [ -n "${context_name}" ]; then
+    $DOCKER_BIN context rm ${context_name} 2>/dev/null
+    if [ $? -ne 0 ]; then
+      echoerr "Failed to remove docker context: ${context_name}. Trying harder ..."
+      $DOCKER_BIN context rm ${context_name} --force 2>/dev/null
+    fi
+  fi
+}
+
 function cleanup() {
   echolog "Rdocker is exiting gracefully."
 
@@ -192,7 +229,12 @@ function cleanup() {
     echolog "Skipping cleanup"
     return
   fi
+
   cleanup_tunnel
+
+  $DOCKER_BIN context use default
+  cleanup_docker_context "${RDOCKER_CONTEXT}"
+  cleanup_docker_context "${RDOCKER_CONTEXT}-tcp"
 }
 
 function print_context() {
@@ -204,6 +246,25 @@ function print_context() {
   echo "* RDOCKER_LOCAL_SOCKET: $RDOCKER_LOCAL_SOCKET"
   echo "* RDOCKER_HOST: $RDOCKER_HOST"
   echo "-----------------------"
+}
+
+function setup_socat_proxy() {
+    # now we use socat to forward the local TCP port to the tunneled docker socket
+    # this enabled us to access the tunneled remote docker socket via TCP
+    RDOCKER_TCP_PORT=12345
+    RDOCKER_SOCAT_DEBUG=${RDOCKER_SOCAT_DEBUG:-0}
+    echolog "Starting socat to forward tcp:${RDOCKER_TCP_PORT} to ${RDOCKER_LOCAL_SOCKET}"
+    SOCAT_ARGS=""
+    if [ $RDOCKER_SOCAT_DEBUG -eq 1 ]; then
+      SOCAT_ARGS="-v -d -d"
+    fi
+    $SOCAT_BIN $SOCAT_ARGS \
+      TCP-LISTEN:${RDOCKER_TCP_PORT},reuseaddr,fork \
+      UNIX-CONNECT:${RDOCKER_LOCAL_SOCKET} &
+    SOCAT_PID=$!
+    echolog "SOCAT_PID: $SOCAT_PID"
+    echolog $SOCAT_PID > "${RDOCKER_SOCAT_PID_FILE}"
+    echo "🔥️ -> Use: DOCKER_HOST=tcp://localhost:${RDOCKER_TCP_PORT}"
 }
 
 # cleanup on exit
@@ -256,33 +317,30 @@ EOF
     print_context
     #setup_tunnel
     setup_autossh_tunnel
+    setup_docker_context "${RDOCKER_CONTEXT}" "unix://${RDOCKER_LOCAL_SOCKET}"
 
     echo "🚀  SSH tunnel established to ${RDOCKER_REMOTE_HOST}"
     echo "🛰️ Local socket: ${RDOCKER_LOCAL_SOCKET}"
     echo "🔥️ -> Use: DOCKER_HOST=${RDOCKER_HOST}"
 
-    # now we use socat to forward the local TCP port to the tunneled docker socket
-    # this enabled us to access the tunneled remote docker socket via TCP
-    RDOCKER_TCP_PORT=12345
-    echo "Starting socat to forward tcp:${RDOCKER_TCP_PORT} to ${RDOCKER_LOCAL_SOCKET}"
-    SOCAT_ARGS=""
-    if [ $RDOCKER_SOCAT_DEBUG -eq 1 ]; then
-      SOCAT_ARGS="-v -d -d"
-    fi
-    $SOCAT_BIN $SOCAT_ARGS \
-      TCP-LISTEN:${RDOCKER_TCP_PORT},reuseaddr,fork \
-      UNIX-CONNECT:${RDOCKER_LOCAL_SOCKET} &
-    SOCAT_PID=$!
-    echo "SOCAT_PID: $SOCAT_PID"
-    echo $SOCAT_PID > "${RDOCKER_SOCAT_PID_FILE}"
-    echo "🔥️ -> Use: DOCKER_HOST=tcp://localhost:${RDOCKER_TCP_PORT}"
+    setup_socat_proxy
+    setup_docker_context "${RDOCKER_CONTEXT}-tcp" "tcp://localhost:${RDOCKER_TCP_PORT}"
 
-    #sleep 1
-    #export DOCKER_HOST=$RDOCKER_HOST
-    #$DOCKER_BIN ps
+    # set the docker context to the new context
+    #$DOCKER_BIN context use "${RDOCKER_CONTEXT}"
+    export DOCKER_HOST=$RDOCKER_HOST
+    echo "Probing connection ..."
+    sleep 1
+    if $DOCKER_BIN ps 2>/dev/null ; then
+      echo "Docker connection is working"
+    else
+      echoerr "Docker connection probe failed"
+      #exit 1
+    fi
 
     # loop forever until someone kills the script
-    echo "Press Ctrl+C to exit."
+    sleep 1
+    echo "Press Ctrl+C to close tunnel and exit."
     while true; do
       sleep 3
       if [ -f $RDOCKER_TUNNEL_PID_FILE ]; then
