@@ -26,7 +26,7 @@ COPY  --chown=rdocker:rdocker \
     lib/config.inc.sh lib/env.inc.sh lib/util.inc.sh \
     /rdocker/lib/
 COPY  --chown=rdocker:rdocker \
-    rdocker.sh /rdocker/bin/
+    bin/rdocker.sh /rdocker/bin/
 COPY --chown=rdocker:rdocker \
     ./docker/entrypoint.sh /entrypoint.sh
 
