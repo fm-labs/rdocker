@@ -1,5 +1,5 @@
 # Project: RDOCKER
-# File: inc/config.inc.sh
+# File: lib/config.inc.sh
 # This include script sets up the environment for the RDOCKER project.
 # It checks if the required binaries are installed and sets up the environment variables.
 RDOCKER_LOGPREFIX="[config] "

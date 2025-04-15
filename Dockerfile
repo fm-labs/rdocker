@@ -23,8 +23,8 @@ RUN addgroup -S docker && \
 # copy files
 WORKDIR /
 COPY  --chown=rdocker:rdocker \
-    inc/config.inc.sh inc/env.inc.sh inc/util.inc.sh \
-    /rdocker/inc/
+    lib/config.inc.sh lib/env.inc.sh lib/util.inc.sh \
+    /rdocker/lib/
 COPY  --chown=rdocker:rdocker \
     rdocker.sh /rdocker/bin/
 COPY --chown=rdocker:rdocker \

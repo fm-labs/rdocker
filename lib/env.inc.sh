@@ -1,6 +1,6 @@
 #!/bin/bash
 # Project: RDOCKER
-# File: inc/env.inc.sh
+# File: lib/env.inc.sh
 # This script sets up the environment for the RDOCKER project.
 # - It loads the environment variables from the specified context.
 # - It checks if the required environment variables are set.

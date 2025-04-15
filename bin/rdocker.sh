@@ -7,12 +7,12 @@ RDOCKER_LOGPREFIX="[rdocker] "
 
 # get the directory of the script
 script_dir=$(dirname $(readlink -f $0))
-# load the io utils
-source $script_dir/../inc/util.inc.sh
+# load the utils
+source $script_dir/../lib/util.inc.sh
 # check the required binaries
-source $script_dir/../inc/config.inc.sh
+source $script_dir/../lib/config.inc.sh
 # load the environment variables
-source $script_dir/../inc/env.inc.sh
+source $script_dir/../lib/env.inc.sh
 
 # check the context and setup the environment
 if [ -z "$RDOCKER_CONTEXT" ]; then

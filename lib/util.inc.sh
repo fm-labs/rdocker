@@ -1,5 +1,5 @@
 # Project: RDOCKER
-# File: inc/util.inc.sh
+# File: lib/util.inc.sh
 # This include script includes utility functions for the RDOCKER project.
 
 function echolog() {
