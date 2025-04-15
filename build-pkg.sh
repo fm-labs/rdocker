@@ -58,7 +58,7 @@ for TARGET in tar zip apk deb rpm ; do
         --description "$DESCRIPTION" \
         --prefix="$INSTALL_PREFIX" \
         --package "$BUILD_DIR" \
-        "bin/rdocker.sh=$INSTALL_PREFIX/bin/rdocker" \
+        "bin/rdocker=$INSTALL_PREFIX/bin/rdocker" \
         "lib/=$INSTALL_PREFIX/lib/$NAME/"
 done
 

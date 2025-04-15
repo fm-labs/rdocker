@@ -60,7 +60,7 @@ EOF
 To start a `rdocker` tunnel to a remote Docker daemon, run the following command:
 
 ```bash
-RDOCKER_CONTEXT=remote0 ./rdocker.sh tunnel-up
+RDOCKER_CONTEXT=remote0 ./rdocker tunnel-up
 
 # Outputs:
 #-----------------------
@@ -94,7 +94,7 @@ From another terminal, you can now access the remote Docker daemon using either 
 #### Using rdocker
 
 ```bash
-RDOCKER_CONTEXT=remote0 ./rdocker.sh ps
+RDOCKER_CONTEXT=remote0 ./rdocker ps
 ```
 
 #### Using docker

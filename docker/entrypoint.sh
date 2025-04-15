@@ -15,7 +15,7 @@ case $CMD in
   "rdocker")
     shift
     #exec /usr/local/bin/rdocker "$@"
-    exec /rdocker/bin/rdocker.sh "$@"
+    exec /rdocker/bin/rdocker "$@"
     ;;
   #"rdocker-socket-proxy")
   #  shift

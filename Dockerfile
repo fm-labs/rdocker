@@ -26,7 +26,7 @@ COPY  --chown=rdocker:rdocker \
     lib/config.inc.sh lib/env.inc.sh lib/util.inc.sh \
     /rdocker/lib/
 COPY  --chown=rdocker:rdocker \
-    bin/rdocker.sh /rdocker/bin/
+    bin/rdocker /rdocker/bin/
 COPY --chown=rdocker:rdocker \
     ./docker/entrypoint.sh /entrypoint.sh
 
@@ -35,9 +35,9 @@ RUN mkdir -p /rdocker/run && \
     chown rdocker:rdocker /rdocker/run && \
     mkdir -p /.rdocker && \
     chown rdocker:rdocker /.rdocker && \
-    chmod +x /rdocker/bin/rdocker.sh && \
+    chmod +x /rdocker/bin/rdocker && \
     chmod +x /entrypoint.sh && \
-    ln -s /rdocker/bin/rdocker.sh /usr/local/bin/rdocker
+    ln -s /rdocker/bin/rdocker /usr/local/bin/rdocker
 
 WORKDIR /rdocker
 USER rdocker
