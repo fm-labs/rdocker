@@ -1,5 +1,6 @@
 .idea/
 .rdocker/
+build/
 dist/
 node_modules/
 hosts/

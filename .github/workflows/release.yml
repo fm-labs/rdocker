@@ -1,0 +1,42 @@
+name: Build, Package & Release
+
+on:
+  #release:
+  #  types: [published]
+  push:
+    branches:
+      - "*-release"
+
+
+jobs:
+  build:
+    name: Build Packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Ruby (for FPM)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.1
+
+      - name: Install FPM
+        run: gem install --no-document fpm
+
+      - name: Make build.sh executable
+        run: chmod +x ./build-pkg.sh
+
+      - name: Run build
+        run: ./build-pkg.sh
+
+#      - name: Upload release artifacts
+#        uses: softprops/action-gh-release@v2
+#        with:
+#          files: |
+#            pkg/*.deb
+#            pkg/*.rpm
+#            pkg/*.tar.gz
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

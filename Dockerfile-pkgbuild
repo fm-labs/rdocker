@@ -1,0 +1,22 @@
+#FROM alpine:latest
+#FROM ubuntu:latest
+FROM debian:latest
+
+# Install bash, ruby, gem and fpm
+#RUN apk add --no-cache ruby ruby-dev build-base bash \
+#    && gem install --no-document fpm \
+#    && gem cleanup \
+#    && rm -rf /var/cache/apk/* \
+#    && rm -rf /usr/lib/ruby/gems/*/cache/*.gem \
+#    && mkdir -p /app
+
+RUN apt-get update \
+    && apt-get install -y ruby ruby-dev build-essential bash tar \
+    && apt-get install -y rpm \
+    && gem install --no-document fpm \
+    && gem cleanup \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /app
+
+WORKDIR /app
+CMD ["/app/build-pkg.sh"]
