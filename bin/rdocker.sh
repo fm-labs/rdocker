@@ -8,11 +8,11 @@ RDOCKER_LOGPREFIX="[rdocker] "
 # get the directory of the script
 script_dir=$(dirname $(readlink -f $0))
 # load the io utils
-source $script_dir/inc/util.inc.sh
+source $script_dir/../inc/util.inc.sh
 # check the required binaries
-source $script_dir/inc/config.inc.sh
+source $script_dir/../inc/config.inc.sh
 # load the environment variables
-source $script_dir/inc/env.inc.sh
+source $script_dir/../inc/env.inc.sh
 
 # check the context and setup the environment
 if [ -z "$RDOCKER_CONTEXT" ]; then
@@ -66,25 +66,6 @@ mkdir -p $RDOCKER_LOCAL_TMPDIR
 SSH_PID=
 SOCAT_PID=
 
-function kill_process() {
-  local pid=$1
-  if [ -n "$pid" ]; then
-    echolog "Killing process with PID: $pid"
-
-    # check if the process is running
-    if ! kill -0 "$pid" 2>/dev/null; then
-      echolog "Process with PID $pid is not running. Exiting"
-      return 0
-    fi
-
-    # kill the process
-    kill $pid 2>/dev/null
-    if [ $? -ne 0 ]; then
-      echoerr "Failed to kill process. PID: $pid. Trying harder ..."
-      kill -9 $pid
-    fi
-  fi
-}
 
 function setup_autossh_tunnel() {
   if [ -z "$RDOCKER_REMOTE_HOST" ]; then
@@ -101,9 +82,10 @@ function setup_autossh_tunnel() {
   if [ -f $RDOCKER_TUNNEL_PID_FILE ]; then
     SSH_PID=$(cat $RDOCKER_TUNNEL_PID_FILE)
     if kill -0 "$SSH_PID" 2>/dev/null; then
-      echolog "SSH tunnel already up. PID: $SSH_PID"
+      echoerr "SSH tunnel already up. PID: $SSH_PID"
       skip_cleanup=1
-      return 0
+      #return 0
+      exit 0
     fi
   fi
 
@@ -214,10 +196,10 @@ function cleanup_docker_context() {
   local context_name=$1
   echolog "Cleaning up docker context ${context_name}"
   if [ -n "${context_name}" ]; then
-    $DOCKER_BIN context rm ${context_name} 2>/dev/null
+    $DOCKER_BIN context rm ${context_name} >/dev/null
     if [ $? -ne 0 ]; then
       echoerr "Failed to remove docker context: ${context_name}. Trying harder ..."
-      $DOCKER_BIN context rm ${context_name} --force 2>/dev/null
+      $DOCKER_BIN context rm ${context_name} --force >/dev/null
     fi
   fi
 }
@@ -232,7 +214,9 @@ function cleanup() {
 
   cleanup_tunnel
 
-  $DOCKER_BIN context use default
+  echolog "Reset docker context to default"
+  $DOCKER_BIN context use default > /dev/null
+  echolog "Cleaning up docker context"
   cleanup_docker_context "${RDOCKER_CONTEXT}"
   cleanup_docker_context "${RDOCKER_CONTEXT}-tcp"
 }
@@ -264,8 +248,27 @@ function setup_socat_proxy() {
     SOCAT_PID=$!
     echolog "SOCAT_PID: $SOCAT_PID"
     echolog $SOCAT_PID > "${RDOCKER_SOCAT_PID_FILE}"
-    echo "🔥️ -> Use: DOCKER_HOST=tcp://localhost:${RDOCKER_TCP_PORT}"
+    echo "-> DOCKER_HOST=tcp://localhost:${RDOCKER_TCP_PORT}"
 }
+
+function get_docker_info() {
+  # get the docker info
+  $DOCKER_BIN info
+  if [ $? -ne 0 ]; then
+    echoerr "Failed to get docker info"
+    return 1
+  fi
+}
+
+function get_docker_version() {
+  # get the docker version
+  $DOCKER_BIN version
+  if [ $? -ne 0 ]; then
+    echoerr "Failed to get docker version"
+    return 1
+  fi
+}
+
 
 # cleanup on exit
 trap cleanup EXIT
@@ -274,7 +277,7 @@ trap cleanup EXIT
 CMD=$1
 echolog "CMD: $CMD"
 case $CMD in
-  "info")
+  "rdocker")
     skip_cleanup=1
     print_context
     exit 0
@@ -319,9 +322,9 @@ EOF
     setup_autossh_tunnel
     setup_docker_context "${RDOCKER_CONTEXT}" "unix://${RDOCKER_LOCAL_SOCKET}"
 
-    echo "🚀  SSH tunnel established to ${RDOCKER_REMOTE_HOST}"
-    echo "🛰️ Local socket: ${RDOCKER_LOCAL_SOCKET}"
-    echo "🔥️ -> Use: DOCKER_HOST=${RDOCKER_HOST}"
+    echo "🔐 SSH tunnel established to ${RDOCKER_REMOTE_HOST}"
+    echo "🚀️ Local socket: ${RDOCKER_LOCAL_SOCKET}"
+    echo "-> DOCKER_HOST=${RDOCKER_HOST}"
 
     setup_socat_proxy
     setup_docker_context "${RDOCKER_CONTEXT}-tcp" "tcp://localhost:${RDOCKER_TCP_PORT}"
@@ -331,10 +334,10 @@ EOF
     export DOCKER_HOST=$RDOCKER_HOST
     echo "Probing connection ..."
     sleep 1
-    if $DOCKER_BIN ps 2>/dev/null ; then
-      echo "Docker connection is working"
+    if $DOCKER_BIN version ; then
+      echo "✅ Docker connection is working"
     else
-      echoerr "Docker connection probe failed"
+      echoerr "❌ Docker connection probe failed"
       #exit 1
     fi
 
@@ -363,7 +366,7 @@ EOF
 
   "tunnel-down")
     cleanup_tunnel
-    echolog "🚀 SSH tunnel closed"
+    echo "✅ SSH tunnel closed"
     skip_cleanup=1 # already cleaned up
     exit 0
   ;;

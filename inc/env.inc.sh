@@ -1,3 +1,4 @@
+#!/bin/bash
 # Project: RDOCKER
 # File: inc/env.inc.sh
 # This script sets up the environment for the RDOCKER project.
@@ -34,7 +35,7 @@ echolog "RDOCKER_CONTEXT: $RDOCKER_CONTEXT"
 if [ -z "$RDOCKER_HOME" ]; then
   #echoerr "RDOCKER_HOME not set. Exiting"
   #exit 1
-  RDOCKER_HOME="~/.rdocker"
+  RDOCKER_HOME="$HOME/.rdocker"
 fi
 echolog "RDOCKER_HOME: $RDOCKER_HOME"
 mkdir -p $RDOCKER_HOME
@@ -45,6 +46,7 @@ if [ -f ${RDOCKER_CONTEXTFILE} ]; then
   source ${RDOCKER_CONTEXTFILE}
 else
   echoerr "WARN: File ${RDOCKER_CONTEXTFILE} not found."
+  source ${RDOCKER_CONTEXTFILE}
   #exit 1
 fi
 

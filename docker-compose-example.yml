@@ -6,6 +6,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    restart: always
     environment:
       - RDOCKER_DEBUG=1
       - RDOCKER_CONTEXT=remote0
@@ -15,6 +16,7 @@ services:
       - RDOCKER_TCP_PORT=12345
       - RDOCKER_LOCAL_SOCKET=/rdocker/run/rdocker.sock
     volumes:
+      - ~/.rdocker:/.rdocker:ro
       - ~/.ssh:/home/rdocker/.ssh:ro
     ports:
       - "1234:12345"
@@ -23,23 +25,23 @@ services:
       - tunnel-up
 
   rdocker0:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: fmlabs/rdocker:latest
+    restart: always
     environment:
       - RDOCKER_REMOTE_HOST=remote0.example.com
     volumes:
+      - ~/.rdocker:/.rdocker:ro
       - ~/.ssh:/home/rdocker/.ssh:ro
     ports:
       - "20000:12345"
 
   rdocker1:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: fmlabs/rdocker:latest
+    restart: always
     environment:
       - RDOCKER_REMOTE_HOST=remote1.example.com
     volumes:
+      - ~/.rdocker:/.rdocker:ro
       - ~/.ssh:/home/rdocker/.ssh:ro
     ports:
       - "20001:12345"

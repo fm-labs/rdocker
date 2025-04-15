@@ -22,6 +22,26 @@ function echoerr() {
 }
 
 
+function kill_process() {
+  local pid=$1
+  if [ -n "$pid" ]; then
+    echolog "Killing process with PID: $pid"
+
+    # check if the process is running
+    if ! kill -0 "$pid" 2>/dev/null; then
+      echolog "Process with PID $pid is not running. Exiting"
+      return 0
+    fi
+
+    # kill the process
+    kill $pid 2>/dev/null
+    if [ $? -ne 0 ]; then
+      echoerr "Failed to kill process. PID: $pid. Trying harder ..."
+      kill -9 $pid
+    fi
+  fi
+}
+
 #function load_host_vars() {
 #  local host_vars_file_path="${1}"
 #  if [ -f "${host_vars_file_path}" ]; then
