@@ -10,8 +10,9 @@ RUN apk add --no-cache \
     curl \
     jq \
     socat \
-    byobu && \
-    rm -rf /var/cache/apk/*
+    byobu \
+    expect \
+    && rm -rf /var/cache/apk/*
 
 # create group docker
 # create a non-root user
@@ -31,11 +32,7 @@ COPY --chown=rdocker:rdocker \
     ./docker/entrypoint.sh /entrypoint.sh
 
 # set permissions
-RUN mkdir -p /rdocker/run && \
-    chown rdocker:rdocker /rdocker/run && \
-    mkdir -p /.rdocker && \
-    chown rdocker:rdocker /.rdocker && \
-    chmod +x /rdocker/bin/rdocker && \
+RUN chmod +x /rdocker/bin/rdocker && \
     chmod +x /entrypoint.sh && \
     ln -s /rdocker/bin/rdocker /usr/local/bin/rdocker
 

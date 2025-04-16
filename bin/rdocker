@@ -40,11 +40,31 @@ RDOCKER_SOCAT_PID_FILE=${RDOCKER_LOCAL_TMPDIR}/rdocker-socat.${RDOCKER_CONTEXT}.
 skip_cleanup=0
 
 RDOCKER_REMOTE_SSH_KEY=${RDOCKER_REMOTE_SSH_KEY:-}
+RDOCKER_REMOTE_SSH_KEY_PASS=${RDOCKER_REMOTE_SSH_KEY_PASS:-}
+RDOCKER_REMOTE_SSH_KEY_PASS_FILE=${RDOCKER_REMOTE_SSH_KEY_PASS_FILE:-}
 if [ -z "$RDOCKER_REMOTE_SSH_KEY" ]; then
   if [ -f "${RDOCKER_HOME}/${RDOCKER_CONTEXT}.key" ]; then
     RDOCKER_REMOTE_SSH_KEY="${RDOCKER_HOME}/${RDOCKER_CONTEXT}.key"
+
+    # check corresponding passphrase file
+    if [ -f "${RDOCKER_HOME}/${RDOCKER_CONTEXT}.key.pass" ]; then
+      RDOCKER_REMOTE_SSH_KEY_PASS_FILE="${RDOCKER_HOME}/${RDOCKER_CONTEXT}.key.pass"
+    fi
   fi
 fi
+
+# read the passphrase from the file, if set
+if [ -n "$RDOCKER_REMOTE_SSH_KEY_PASS_FILE" ]; then
+  if [ -f "$RDOCKER_REMOTE_SSH_KEY_PASS_FILE" ]; then
+    RDOCKER_REMOTE_SSH_KEY_PASS=$(cat $RDOCKER_REMOTE_SSH_KEY_PASS_FILE)
+  else
+    echoerr "SSH key passphrase file not found: $RDOCKER_REMOTE_SSH_KEY_PASS_FILE"
+    exit 1
+  fi
+fi
+echo "RDOCKER_REMOTE_SSH_KEY: $RDOCKER_REMOTE_SSH_KEY"
+echo "RDOCKER_REMOTE_SSH_KEY_PASS: $RDOCKER_REMOTE_SSH_KEY_PASS"
+echo "RDOCKER_REMOTE_SSH_KEY_PASS_FILE: $RDOCKER_REMOTE_SSH_KEY_PASS_FILE"
 
 # ssh arguments
 SSH_ARGS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ExitOnForwardFailure=yes"
@@ -52,8 +72,39 @@ AUTOSSH_ARGS=""
 # check if the SSH key is set
 if [ -n "$RDOCKER_REMOTE_SSH_KEY" ]; then
   if [ -f "$RDOCKER_REMOTE_SSH_KEY" ]; then
-    SSH_ARGS="$SSH_ARGS -i $RDOCKER_REMOTE_SSH_KEY"
-    #AUTOSSH_ARGS="$AUTOSSH_ARGS -i $RDOCKER_REMOTE_SSH_KEY"
+
+    #      # check if the key has a passphrase
+    #      if ssh-keygen -y -f $RDOCKER_REMOTE_SSH_KEY 2>&1 | grep -q "Enter passphrase for key"; then
+    #        # the key has a passphrase
+    #        if [ -z "$RDOCKER_REMOTE_SSH_KEY_PASS" ]; then
+    #          echoerr "SSH key has a passphrase. Please set RDOCKER_REMOTE_SSH_KEY_PASS"
+    #          exit 1
+    #        fi
+    #        #echo "SSH key has a passphrase"
+    #        #echo "RDOCKER_REMOTE_SSH_KEY_PASS: $RDOCKER_REMOTE_SSH_KEY_PASS"
+    #      fi
+    #    fi
+
+    # unlock the SSH key if it has a passphrase
+    if [ -n "$RDOCKER_REMOTE_SSH_KEY_PASS" ]; then
+      echo "Unlocking SSH key with passphrase"
+
+      # escape the $ sign in the passphrase
+      EXPECT_PASSWORD=$(echo "$RDOCKER_REMOTE_SSH_KEY_PASS" | sed 's/\$/\\$/g')
+      #echo "Expect password: $EXPECT_PASSWORD"
+      expect <<EOF
+spawn ssh-add "$RDOCKER_REMOTE_SSH_KEY"
+expect -re "Enter passphrase(.*):"
+send "$EXPECT_PASSWORD\r"
+expect eof
+EOF
+      if [ $? -ne 0 ]; then
+        echoerr "Failed to unlock SSH key. Exiting"
+        exit 1
+      fi
+    fi
+
+    SSH_ARGS="$SSH_ARGS -o IdentitiesOnly=yes -i $RDOCKER_REMOTE_SSH_KEY"
   else
     echoerr "SSH key file not found: $RDOCKER_REMOTE_SSH_KEY"
     #exit 1
@@ -365,6 +416,7 @@ EOF
         SSH_PID=$(cat $RDOCKER_TUNNEL_PID_FILE)
         if ! kill -0 "$SSH_PID" 2>/dev/null; then
           echoerr "SSH tunnel process with PID $PID vanished. Exiting"
+          sleep 60
           exit 91
         fi
       else

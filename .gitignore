@@ -1,7 +1,9 @@
 .idea/
 .rdocker/
+.rdocker
 build/
 dist/
+docs/
 node_modules/
 hosts/
 launch-templates/
