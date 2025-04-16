@@ -36,9 +36,15 @@ RUN chmod +x /rdocker/bin/rdocker && \
     chmod +x /entrypoint.sh && \
     ln -s /rdocker/bin/rdocker /usr/local/bin/rdocker
 
+# Healthcheck
+COPY --chown=rdocker:rdocker \
+  docker/healthcheck.sh /usr/local/bin/healthcheck
+RUN chmod +x /usr/local/bin/healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD /usr/local/bin/healthcheck
+
 WORKDIR /rdocker
 USER rdocker
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["rdocker", "tunnel-up"]
-
 EXPOSE 12345
