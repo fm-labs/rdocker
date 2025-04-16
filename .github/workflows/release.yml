@@ -32,12 +32,12 @@ jobs:
       - name: Run build
         run: ./build-pkg.sh
 
-#      - name: Upload release artifacts
-#        uses: softprops/action-gh-release@v2
-#        with:
-#          files: |
-#            pkg/*.deb
-#            pkg/*.rpm
-#            pkg/*.tar.gz
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload release artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/*.deb
+            build/*.rpm
+            build/*.tar.gz
+        #env:
+        #  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
