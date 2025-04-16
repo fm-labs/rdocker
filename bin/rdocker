@@ -89,6 +89,15 @@ if [ -n "$RDOCKER_REMOTE_SSH_KEY" ]; then
     if [ -n "$RDOCKER_REMOTE_SSH_KEY_PASS" ]; then
       echo "Unlocking SSH key with passphrase"
 
+      # spawn ssh-agent if not already running
+      if [ -z "$SSH_AUTH_SOCK" ]; then
+        eval $(ssh-agent -s)
+        if [ $? -ne 0 ]; then
+          echoerr "Failed to start ssh-agent. Exiting"
+          exit 1
+        fi
+      fi
+
       # escape the $ sign in the passphrase
       EXPECT_PASSWORD=$(echo "$RDOCKER_REMOTE_SSH_KEY_PASS" | sed 's/\$/\\$/g')
       #echo "Expect password: $EXPECT_PASSWORD"
