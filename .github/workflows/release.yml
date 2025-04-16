@@ -38,6 +38,8 @@ jobs:
           files: |
             build/*.deb
             build/*.rpm
-            build/*.tar.gz
+            build/*.apk
+            build/*.tar
+            build/*.zip
         #env:
         #  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
