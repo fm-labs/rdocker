@@ -15,10 +15,10 @@ RUN apk add --no-cache \
     && rm -rf /var/cache/apk/*
 
 # create group docker
-# create a non-root user
-# add the user to the docker group
+# create a non-root user "rocker" with home directory /rdocker
+# and add the user to the docker group
 RUN addgroup -S docker && \
-    adduser -D rdocker && \
+    adduser -D rdocker -h /rdocker && \
     addgroup rdocker docker
 
 # copy files
