@@ -1,0 +1,63 @@
+site_name: Rdocker Docs
+
+docs_dir: docs
+site_dir: build/docs
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quick-start.md
+  - User Guide:
+      - Configuration: user-guide/configuration.md
+      - Context: user-guide/context.md
+      - Tunnels: user-guide/docker-tunnel.md
+
+
+extra_css:
+  - mkdocs.css
+
+features:
+  - content.code.copy
+  - search.highlight
+  - search.suggest
+  - navigation.sections
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.highlight:
+      anchor_linenums: true
+      auto_title: true
+      linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - attr_list
+  - md_in_html
+  - def_list
+
+
+#theme:
+#  icon:
+#    annotation: material/arrow-right-circle
+
+#theme:
+#  features:
+#    - navigation.tabs
+#    - navigation.tabs.sticky
+
+
+plugins:
+  - search:
+      enabled: true
+  - awesome-pages # pip install mkdocs-awesome-pages-plugin
