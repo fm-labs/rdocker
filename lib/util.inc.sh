@@ -42,6 +42,23 @@ function kill_process() {
   fi
 }
 
+function check_process_by_pidfile() {
+  local pidfile=$1
+  local pid
+  if [ -f $pidfile ]; then
+    pid=$(cat $pidfile)
+    if [ -z "$pid" ]; then
+      echo "PID file is empty. Process not running."
+      return 1
+    fi
+    if kill -0 "$pid" 2>/dev/null; then
+      echo "Process with PID is running: $pid"
+      return 0
+    fi
+  fi
+  return 1
+}
+
 #function load_host_vars() {
 #  local host_vars_file_path="${1}"
 #  if [ -f "${host_vars_file_path}" ]; then
