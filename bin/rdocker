@@ -2,7 +2,6 @@
 ####################################################################
 # rdocker - Remote Docker CLI
 ####################################################################
-set -e
 
 RDOCKER_LOGPREFIX="[rdocker] "
 RDOCKER_VERSION="0.3.1"
@@ -302,6 +301,12 @@ function get_docker_version() {
   fi
 }
 
+####################################################################
+# main
+####################################################################
+
+# Treat unset variables as an error and exit immediately.
+#set -u
 
 # cleanup on exit
 trap cleanup EXIT

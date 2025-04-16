@@ -14,7 +14,6 @@
 # -- RDOCKER_TCP_PORT is the TCP port. Default is 12345.
 # -- RDOCKER_DEBUG is the debug flag. Default is 0.
 
-
 RDOCKER_LOGPREFIX="[env] "
 
 # check that RDOCKER_CONTEXT is set,

@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# Need to override the default RDOCKER_LOCAL_SOCKET in docker environment
-#RDOCKER_LOCAL_SOCKET=${RDOCKER_LOCAL_SOCKET:-/tmp/rdocker.sock}
+RDOCKER_DEBUG=${RDOCKER_DEBUG:-0}
+if [ $RDOCKER_DEBUG -eq 2 ]; then
+  set -x
+fi
 
 source /rdocker/lib/util.inc.sh
 source /rdocker/lib/config.inc.sh

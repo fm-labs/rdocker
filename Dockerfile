@@ -29,22 +29,26 @@ COPY  --chown=rdocker:rdocker \
 COPY  --chown=rdocker:rdocker \
     bin/rdocker /rdocker/bin/
 COPY --chown=rdocker:rdocker \
-    ./docker/entrypoint.sh /entrypoint.sh
+    ./docker/entrypoint.sh ./docker/healthcheck.sh /
+
 
 # set permissions
 RUN chmod +x /rdocker/bin/rdocker && \
     chmod +x /entrypoint.sh && \
-    ln -s /rdocker/bin/rdocker /usr/local/bin/rdocker
+    chmod +x /healthcheck.sh && \
+    ln -s /rdocker/bin/rdocker /usr/local/bin/rdocker && \
+    ln -s /healthcheck.sh /usr/local/bin/healthcheck && \
+    ln -s /entrypoint.sh /usr/local/bin/entrypoint
 
-# Healthcheck
-COPY --chown=rdocker:rdocker \
-  docker/healthcheck.sh /usr/local/bin/healthcheck
-RUN chmod +x /usr/local/bin/healthcheck
+# healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD /usr/local/bin/healthcheck
 
+# entrypoint
 WORKDIR /rdocker
-USER rdocker
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["rdocker", "tunnel-up"]
+USER rdocker
+
+# networking
 EXPOSE 12345
