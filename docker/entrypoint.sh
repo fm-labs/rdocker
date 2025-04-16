@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eux
+set -xe
 
 echo "Entrypoint script for RDOCKER"
 
@@ -7,6 +7,9 @@ WHOAMI=$(whoami)
 echo "Running as user: $WHOAMI"
 
 CMD=$1
+if [ -z $CMD ] ;
+  CMD=rdocker
+fi
 case $CMD in
   "rdocker")
     shift
