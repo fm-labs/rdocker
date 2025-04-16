@@ -388,7 +388,7 @@ EOF
     #$DOCKER_BIN context use "${RDOCKER_CONTEXT}"
     export DOCKER_HOST=$RDOCKER_HOST
     echo "Probing connection ..."
-    sleep 1
+    sleep 3
     if $DOCKER_BIN version ; then
       echo "✅ Docker connection is working"
     else
