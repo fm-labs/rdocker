@@ -62,9 +62,9 @@ if [ -n "$RDOCKER_REMOTE_SSH_KEY_PASS_FILE" ]; then
     exit 1
   fi
 fi
-echo "RDOCKER_REMOTE_SSH_KEY: $RDOCKER_REMOTE_SSH_KEY"
-echo "RDOCKER_REMOTE_SSH_KEY_PASS: $RDOCKER_REMOTE_SSH_KEY_PASS"
-echo "RDOCKER_REMOTE_SSH_KEY_PASS_FILE: $RDOCKER_REMOTE_SSH_KEY_PASS_FILE"
+echolog "RDOCKER_REMOTE_SSH_KEY: $RDOCKER_REMOTE_SSH_KEY"
+echolog "RDOCKER_REMOTE_SSH_KEY_PASS_FILE: $RDOCKER_REMOTE_SSH_KEY_PASS_FILE"
+#echolog "RDOCKER_REMOTE_SSH_KEY_PASS: $RDOCKER_REMOTE_SSH_KEY_PASS"
 
 # ssh arguments
 SSH_ARGS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ExitOnForwardFailure=yes"
@@ -98,7 +98,8 @@ if [ -n "$RDOCKER_REMOTE_SSH_KEY" ]; then
         fi
       fi
 
-      # escape the $ sign in the passphrase
+      # workaround for passwords containing $ sign
+      # escape the $ sign
       EXPECT_PASSWORD=$(echo "$RDOCKER_REMOTE_SSH_KEY_PASS" | sed 's/\$/\\$/g')
       #echo "Expect password: $EXPECT_PASSWORD"
       expect <<EOF
@@ -116,7 +117,7 @@ EOF
     SSH_ARGS="$SSH_ARGS -o IdentitiesOnly=yes -i $RDOCKER_REMOTE_SSH_KEY"
   else
     echoerr "SSH key file not found: $RDOCKER_REMOTE_SSH_KEY"
-    #exit 1
+    exit 1
   fi
 fi
 #echolog "SSH_ARGS: $SSH_ARGS"
