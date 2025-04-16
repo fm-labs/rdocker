@@ -265,10 +265,13 @@ function print_context() {
 }
 
 function setup_socat_proxy() {
+    if [ "$RDOCKER_TCP_ENABLE" -ne 1 ]; then
+      echoerr "RDOCKER_TCP_ENABLE not set or active. Skipping socat proxy setup"
+      return 0
+    fi
+
     # now we use socat to forward the local TCP port to the tunneled docker socket
     # this enabled us to access the tunneled remote docker socket via TCP
-    RDOCKER_TCP_PORT=${RDOCKER_TCP_PORT:-12345}
-    RDOCKER_SOCAT_DEBUG=${RDOCKER_SOCAT_DEBUG:-0}
     echolog "Starting socat to forward tcp:${RDOCKER_TCP_PORT} to ${RDOCKER_LOCAL_SOCKET}"
     SOCAT_ARGS=""
     if [ $RDOCKER_SOCAT_DEBUG -eq 1 ]; then
@@ -280,6 +283,12 @@ function setup_socat_proxy() {
     SOCAT_PID=$!
     echolog "SOCAT_PID: $SOCAT_PID"
     echolog $SOCAT_PID > "${RDOCKER_SOCAT_PID_FILE}"
+
+    if ! check_process_by_pidfile $RDOCKER_SOCAT_PID_FILE; then
+      echoerr "Failed to start tcp proxy."
+      return 1
+    fi
+
     echo "-> DOCKER_HOST=tcp://localhost:${RDOCKER_TCP_PORT}"
 }
 
