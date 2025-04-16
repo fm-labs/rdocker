@@ -1,5 +1,5 @@
 #!/bin/bash
-set -xe
+set -e
 
 echo "Entrypoint script for RDOCKER"
 
