@@ -7,7 +7,7 @@ WHOAMI=$(whoami)
 echo "Running as user: $WHOAMI"
 
 CMD=$1
-if [ -z $CMD ] ;
+if [ -z $CMD ] ; then
   CMD=rdocker
 fi
 case $CMD in
