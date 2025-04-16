@@ -3,6 +3,9 @@ site_name: Rdocker Docs
 docs_dir: docs
 site_dir: build/docs
 
+theme:
+  name: material
+
 nav:
   - Home: index.md
   - Getting Started:
