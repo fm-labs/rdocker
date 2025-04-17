@@ -4,7 +4,7 @@
 ####################################################################
 
 RDOCKER_LOGPREFIX="[rdocker] "
-RDOCKER_VERSION="0.3.3"
+RDOCKER_VERSION="0.3.4"
 
 # Debug mode
 # 0: no debug
