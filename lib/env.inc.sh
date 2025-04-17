@@ -4,15 +4,21 @@
 # This script sets up the environment for the RDOCKER project.
 # - It loads the environment variables from the specified context.
 # - It checks if the required environment variables are set.
+# -- RDOCKER_LOGPREFIX is the log prefix. Default is "[env] ".
 # -- RDOCKER_CONTEXT is the context name.
 # -- RDOCKER_HOME is the home directory of the RDOCKER configurations. Default is ~/.rdocker.
 # -- RDOCKER_REMOTE_HOST is the remote host.
 # -- RDOCKER_REMOTE_USER is the remote user.
 # -- RDOCKER_REMOTE_SSH_KEY is the SSH key for the remote host.
+# -- RDOCKER_REMOTE_SSH_KEY_PASS is the SSH key passphrase. Default is empty.
+# -- RDOCKER_REMOTE_SSH_KEY_PASS_FILE is the SSH key passphrase file. Default is empty.
 # -- RDOCKER_LOCAL_SOCKET is the local socket. Automatically created if not set.
 # -- RDOCKER_TCP_ENABLE is the TCP enable flag. Default is 1.
 # -- RDOCKER_TCP_PORT is the TCP port. Default is 12345.
-# -- RDOCKER_DEBUG is the debug flag. Default is 0.
+# -- RDOCKER_DEBUG is the debug flag. Default is 0. (1 for debug, 2 for verbose)
+# -- RDOCKER_TUNNEL_PID_FILE is the PID file for the SSH tunnel. Default is /tmp/rdocker-ssh-tunnel.<context>.pid
+# -- RDOCKER_SOCAT_PID_FILE is the PID file for the socat process. Default is /tmp/rdocker-socat.<context>.pid
+# -- RDOCKER_CHECK_INTERVAL is the check interval for the healthcheck. Default is 30 seconds.
 
 RDOCKER_LOGPREFIX="[env] "
 
@@ -108,7 +114,13 @@ echolog "RDOCKER_REMOTE_SSH_KEY: $RDOCKER_REMOTE_SSH_KEY"
 echolog "RDOCKER_REMOTE_SSH_KEY_PASS_FILE: $RDOCKER_REMOTE_SSH_KEY_PASS_FILE"
 #echolog "RDOCKER_REMOTE_SSH_KEY_PASS: $RDOCKER_REMOTE_SSH_KEY_PASS"
 
-# TCP Proxy
+### TCP Proxy
 RDOCKER_TCP_ENABLE=${RDOCKER_TCP_ENABLE:-0}
 RDOCKER_TCP_PORT=${RDOCKER_TCP_PORT:-12345}
 RDOCKER_SOCAT_DEBUG=${RDOCKER_SOCAT_DEBUG:-0}
+
+### Monitoring
+# Check interval for the healthcheck. default is 30 seconds
+RDOCKER_CHECK_INTERVAL=${RDOCKER_CHECK_INTERVAL:-30}
+# Timeout before exiting rdocker on failure. default is 5 seconds
+RDOCKER_COOLDOWN_TIMEOUT=${RDOCKER_COOLDOWN_TIMEOUT:-5}

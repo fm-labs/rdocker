@@ -282,7 +282,7 @@ function setup_socat_proxy() {
       UNIX-CONNECT:${RDOCKER_LOCAL_SOCKET} &
     SOCAT_PID=$!
     echolog "SOCAT_PID: $SOCAT_PID"
-    echolog $SOCAT_PID > "${RDOCKER_SOCAT_PID_FILE}"
+    echo $SOCAT_PID > "${RDOCKER_SOCAT_PID_FILE}"
 
     if ! check_process_by_pidfile $RDOCKER_SOCAT_PID_FILE; then
       echoerr "Failed to start tcp proxy."
@@ -290,6 +290,68 @@ function setup_socat_proxy() {
     fi
 
     echo "-> DOCKER_HOST=tcp://localhost:${RDOCKER_TCP_PORT}"
+}
+
+
+
+# Function to check if the SSH tunnel is up
+check_ssh_tunnel() {
+  echo "Checking SSH tunnel..."
+
+  if [ -z "$RDOCKER_TUNNEL_PID_FILE" ]; then
+    echo "SSH tunnel PID file not set. Exiting"
+    return 1
+  fi
+
+  if check_process_by_pidfile $RDOCKER_TUNNEL_PID_FILE ; then
+    echo "SSH tunnel is up (PID file exists and process found)"
+    return 0
+  else
+    echo "SSH tunnel is down (PID file not found)"
+    return 1
+  fi
+}
+
+check_docker_tcpproxy() {
+  echo "Checking docker TCP proxy..."
+
+  if [ "$RDOCKER_TCP_ENABLE" != "1" ]; then
+    echo "TCP proxy is disabled. Skipping check."
+    return 0
+  fi
+
+  if [ -z "$RDOCKER_SOCAT_PID_FILE" ]; then
+    echo "Tcp proxy PID file not set. Exiting"
+    return 1
+  fi
+
+  if check_process_by_pidfile $RDOCKER_SOCAT_PID_FILE ; then
+    echo "Tcp proxy is up (PID file exists and process found)"
+    return 0
+  else
+    echo "Tcp proxy is down (PID file not found)"
+    return 1
+  fi
+}
+
+# Function to check if the Docker socket is accessible
+check_docker_socket() {
+  if [ -z "$RDOCKER_LOCAL_SOCKET" ]; then
+    echo "RDOCKER_LOCAL_SOCKET not set."
+    return 1
+  fi
+  #if [ -z "$RDOCKER_HOST" ]; then
+  #  echo "RDOCKER_HOST not set."
+  #  return 1
+  #fi
+
+  if curl -v --connect-timeout 5 --unix-socket "$RDOCKER_LOCAL_SOCKET" "http://localhost/version" ; then
+    echo "Docker socket is accessible."
+    return 0
+  else
+    echo "Docker socket is not accessible."
+    return 1
+  fi
 }
 
 function get_docker_info() {
@@ -379,53 +441,64 @@ EOF
 
   "tunnel-up")
     print_context
-    #setup_tunnel
+
+    # autossh tunnel
     if ! setup_autossh_tunnel ; then
       echoerr "Failed to setup SSH tunnel. Exiting"
       exit 1
     fi
     setup_docker_context "${RDOCKER_CONTEXT}" "unix://${RDOCKER_LOCAL_SOCKET}"
 
-    echo "🔐 SSH tunnel established to ${RDOCKER_REMOTE_HOST}"
-    echo "🚀️ Local socket: ${RDOCKER_LOCAL_SOCKET}"
-    echo "-> DOCKER_HOST=${RDOCKER_HOST}"
-
-    setup_socat_proxy
+    # tcp proxy
+    sleep 3
+    if ! setup_socat_proxy ; then
+      echoerr "Failed to setup TCP proxy. Exiting"
+      exit 1
+    fi
     setup_docker_context "${RDOCKER_CONTEXT}-tcp" "tcp://localhost:${RDOCKER_TCP_PORT}"
 
     # set the docker context to the new context
     #$DOCKER_BIN context use "${RDOCKER_CONTEXT}"
     export DOCKER_HOST=$RDOCKER_HOST
+
+    echo "🔐 SSH tunnel established to ${RDOCKER_REMOTE_HOST}"
+    echo "🚀️ Local socket: ${RDOCKER_LOCAL_SOCKET}"
+    echo "-> DOCKER_HOST=${RDOCKER_HOST}"
+
+    sleep 3 # wait a bit for the tunnel to be established
     echo "Probing connection ..."
-    sleep 3
     if $DOCKER_BIN version ; then
       echo "✅ Docker connection is working"
     else
-      echoerr "❌ Docker connection probe failed"
-      #exit 1
+      echoerr "❌ Docker connection probe failed. Exiting."
+      sleep ${RDOCKER_COOLDOWN_TIMEOUT:-5} # cool down
+      exit 1
     fi
 
     # loop forever until someone kills the script
     sleep 1
     echo "Press Ctrl+C to close tunnel and exit."
     while true; do
-      # check if the SSH tunnel is still running ...
-      if [ -f $RDOCKER_TUNNEL_PID_FILE ]; then
-        SSH_PID=$(cat $RDOCKER_TUNNEL_PID_FILE)
-        if ! kill -0 "$SSH_PID" 2>/dev/null; then
-          echoerr "SSH tunnel process with PID $PID vanished. Exiting"
-          sleep 60
-          exit 91
-        fi
-      else
-        echoerr "SSH tunnel PID file vanished. Exiting"
+
+      # run periodic checks
+      sleep ${RDOCKER_CHECK_INTERVAL:-30}
+
+      if ! check_ssh_tunnel ; then
+        echoerr "❌ SSH tunnel is down. Exiting"
+        exit 91
+      fi
+
+      if ! check_docker_socket ; then
+        echoerr "❌ Docker socket is down. Exiting"
         exit 92
       fi
 
-      # ... every 30 seconds
-      # @todo make check interval configurable
-      sleep 30
+      if ! check_docker_tcpproxy ; then
+        echoerr "❌ Docker TCP proxy is down. Exiting"
+        exit 93
+      fi
 
+      echolog "rocker tunnel is up ..."
     done
     exit 0
   ;;
@@ -434,6 +507,28 @@ EOF
     cleanup_tunnel
     echo "✅ SSH tunnel closed"
     skip_cleanup=1 # already cleaned up
+    exit 0
+  ;;
+
+  "tunnel-check")
+    skip_cleanup=1
+
+    if ! check_ssh_tunnel ; then
+      exit 1
+    fi
+    echo "- check_ssh_tunnel: PASS"
+
+    if ! check_docker_socket ; then
+      exit 2
+    fi
+    echo "- check_docker_socket: PASS"
+
+    if ! check_docker_tcpproxy ; then
+      exit 3
+    fi
+    echo "- check_docker_tcpproxy: PASS"
+
+    echo "✅ All checks passed."
     exit 0
   ;;
 
