@@ -83,7 +83,7 @@ jobs:
         run: |
           oras attach ${{ steps.vars.outputs.image_tag_versioned }} \
           --artifact-type application/spdx+json \
-          --file sbom.spdx.json
+          sbom.spdx.json
 
 #    - name: Build, tag, and push image to Docker Hub
 #      id: build-image
