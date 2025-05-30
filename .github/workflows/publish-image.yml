@@ -81,9 +81,10 @@ jobs:
 
       - name: Attach SBOM using ORAS
         run: |
-          oras attach docker.io/${{ steps.vars.outputs.image_tag_versioned }} \
-          --artifact-type sbom/spdx+json \
-          sbom.spdx.json
+          oras attach \
+          --artifact-type application/spdx+json \
+          docker.io/${{ steps.vars.outputs.image_tag_versioned }} \
+          sbom.spdx.json:application/spdx+json
 
 #    - name: Build, tag, and push image to Docker Hub
 #      id: build-image
