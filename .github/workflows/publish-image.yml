@@ -39,6 +39,20 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Extract version from tag
+        id: vars
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          echo "version=$version" >> $GITHUB_OUTPUT
+          
+          image_tag_versioned=${{vars.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_REPONAME }}:${version}
+          image_tag_latest=${{vars.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_REPONAME }}:latest
+          echo "image_tag_versioned=$image_tag_versioned" >> $GITHUB_OUTPUT
+          echo "image_tag_latest=$image_tag_latest" >> $GITHUB_OUTPUT
+
+        #echo "major_minor=$(echo $version | cut -d. -f1,2)" >> $GITHUB_OUTPUT
+        #echo "major=$(echo $version | cut -d. -f1)" >> $GITHUB_OUTPUT
+
       - name: Build, tag, and push image to Docker Hub
         uses: docker/build-push-action@v6
         with:
@@ -47,12 +61,30 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ vars.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_REPONAME }}:${{ github.ref_name }}
-            ${{ vars.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_REPONAME }}:latest
+            ${{ steps.vars.outputs.image_tag_versioned }}
+            ${{ steps.vars.outputs.image_tag_latest }}
           # Caching
           #cache-from: type=gha
           #cache-to: type=gha,mode=max`
 
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Install ORAS
+        run: |
+          curl -sSfL https://install.oras.land/sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate SBOM
+        run: |
+          syft ${{ steps.vars.outputs.image_tag_versioned }} -o spdx-json > sbom.spdx.json
+
+      - name: Attach SBOM using ORAS
+        run: |
+          oras attach ${{ steps.vars.outputs.image_tag_versioned }} \
+            --artifact-type application/spdx+json \
+            --file sbom.spdx.json
 
 #    - name: Build, tag, and push image to Docker Hub
 #      id: build-image
