@@ -53,6 +53,12 @@ jobs:
         #echo "major_minor=$(echo $version | cut -d. -f1,2)" >> $GITHUB_OUTPUT
         #echo "major=$(echo $version | cut -d. -f1)" >> $GITHUB_OUTPUT
 
+#      - name: Extract metadata
+#        id: meta
+#        uses: docker/metadata-action@v5
+#        with:
+#          images: ${{ env.IMAGE_NAME }}
+
       - name: Build, tag, and push image to Docker Hub
         uses: docker/build-push-action@v6
         with:
@@ -61,7 +67,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           sbom: true
-          attests: true
+          provenance: true
           tags: |
             ${{ steps.vars.outputs.image_tag_versioned }}
             ${{ steps.vars.outputs.image_tag_latest }}
